@@ -722,6 +722,23 @@ def _selected_vehicle(config, restore_saved=True):
         if customization_count <= 0:
             raise ValueError('client customization catalogue is empty')
 
+        # A career account sells every gold-priced premium in the shop, but
+        # the client marks a vehicle "not researched" unless it is in the
+        # unlock set.  Add every premium on sale so the shop shows it as
+        # purchasable instead of "not researched".
+        if career:
+            for nation_id in range(len(nations.NAMES)):
+                for vehicle_type_id in vehicles.g_list.getList(
+                        nation_id).keys():
+                    compact_descr = vehicles.makeIntCompactDescrByID(
+                        'vehicle', nation_id, vehicle_type_id)
+                    if compact_descr in not_in_shop_items:
+                        continue
+                    price = shop_item_prices.get(compact_descr)
+                    if (isinstance(price, dict) and
+                            price.get('gold', 0) > 0):
+                        unlock_item_compact_descrs.add(compact_descr)
+
         # Preserve the historical selected-vehicle fields for consumers that
         # only need the configured tank.  ``vehicles`` carries the complete
         # garage and account_rpc expands every record into native inventory.
@@ -730,6 +747,7 @@ def _selected_vehicle(config, restore_saved=True):
             'vehicles': records,
             'inventoryItems': inventory_items,
             'shopItemPrices': shop_item_prices,
+            'itemPrices': shop_item_prices,
             'shopNationCount': len(nations.NAMES),
             'customizationItemCount': customization_count,
             'vehicleTypeCompactDescrs': vehicle_type_compact_descrs,
@@ -775,6 +793,29 @@ def _selected_vehicle(config, restore_saved=True):
             'nextInventoryID': len(records) + 1,
             'defaultVehicleSettings': default_settings,
         })
+        # The Shop requester reads prices from data['items']['itemPrices'],
+        # not from the top-level 'itemPrices' entry.  Wrap them again so the
+        # client can price premium vehicles for the tech tree.
+        result['items'] = {
+            'itemPrices': dict(shop_item_prices),
+            'notInShopItems': set(not_in_shop_items),
+            'vehiclesNotToBuy': set(),
+            'vehiclesRentPrices': {},
+            'vehiclesToSellForGold': set(),
+            'vehicleSellPriceFactors': {},
+            'inscriptionGroupPriceFactors': [
+                {} for unused_index in range(len(nations.NAMES))],
+            'notInShopInscriptionGroups': [
+                set() for unused_index in range(len(nations.NAMES))],
+            'camouflagePriceFactors': [
+                {} for unused_index in range(len(nations.NAMES))],
+            'notInShopCamouflages': [
+                set() for unused_index in range(len(nations.NAMES))],
+            'playerEmblemGroupPriceFactors': {},
+            'notInShopPlayerEmblemGroups': set(),
+            'vehicleCamouflagePriceFactors': {},
+            'vehicleHornPriceFactors': {},
+        }
         if restore_saved:
             result['wallet'].update(port_config.save_slot_initial_wallet())
         if not career:
