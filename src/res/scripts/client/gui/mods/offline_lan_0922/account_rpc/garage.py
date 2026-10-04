@@ -135,6 +135,7 @@ class GarageState(object):
         self._touched_items = {}
         self._touched_tankmen = set()
         self._touched_recycled = set()
+        self._touched_recycled_vehicles = set()
         self.revision = 0
 
     def snapshot(self):
@@ -206,6 +207,12 @@ class GarageState(object):
         """Return and clear the recycle-bin rows a command moved."""
         touched = set(self._touched_recycled)
         self._touched_recycled = set()
+        return touched
+
+    def touched_recycled_vehicles(self):
+        """Return and clear the recycle-bin vehicle rows a command moved."""
+        touched = set(self._touched_recycled_vehicles)
+        self._touched_recycled_vehicles = set()
         return touched
 
     def _touch_item_changes(self, before, after):
@@ -1864,6 +1871,20 @@ class GarageState(object):
             self._touch_item_changes(record.get('inventoryItems', {}), {})
             for listed in items_from_inventory:
                 self._add_money(refund, self._sold_out_of_inventory(listed))
+            # A premium or reward vehicle survives its sale; the client
+            # offers it back for the price the sale returned until the
+            # window closes.  A regular researchable vehicle is removed
+            # as before.
+            is_restorable = False
+            try:
+                from gui.mods.offline_lan_0922.account_rpc import economy
+                is_restorable = economy.is_premium_vehicle(
+                    self._vehicles_module(), compact_descr)
+            except Exception:
+                is_restorable = False
+            if is_restorable:
+                self._to_recycle_bin_vehicle(
+                    record.get('id', 0), record.get('compDescr'))
             published = self._snapshot.get('vehicleTypeCompactDescrs')
             if isinstance(published, set):
                 published.discard(compact_descr)
@@ -2262,6 +2283,20 @@ class GarageState(object):
                         :len(bin_rows) - limit]:
                 del bin_rows[oldest]
                 self._touched_recycled.add(_int(oldest))
+
+    def _to_recycle_bin_vehicle(self, vehicle_id, compact_descr):
+        """Move one sold premium vehicle into the recycle bin.
+
+        #1513 restores a premium for the price the sale returned until
+        the window closes.  The bin survives a restart, so the entry is
+        stored as (compact_descr, sold_at); a restore rebuilds the record
+        with a fresh inventory id.
+        """
+        import time as _time
+        bin_rows = self._snapshot.setdefault('recycleBinVehicles', {})
+        vehicle_id = _int(vehicle_id)
+        bin_rows[vehicle_id] = (compact_descr, int(_time.time()))
+        self._touched_recycled_vehicles.add(vehicle_id)
 
     def restore_tankman(self, tankman_inventory_id):
         """Hire one dismissed crew member back into the barracks.

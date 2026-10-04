@@ -280,16 +280,19 @@ def _sanitize_account_filters(account_settings=None):
             continue
         saved = settings_type.getFilter(name)
         if isinstance(saved, dict):
-            unknown = sorted(key for key in saved if key not in default)
             missing = sorted(key for key in default if key not in saved)
-            if not unknown and not missing:
+            if not missing:
                 continue
-            value = dict((key, saved[key]) for key in saved
-                         if key in default)
+            # Keep every key the saved filter carries.  The client reads
+            # some filter keys by name from its own code (the vehicle
+            # restore tab needs ``extra``), and those names are not all
+            # listed in this build's DEFAULT_VALUES.  Dropping the extra
+            # ones raises KeyError inside the store tab.
+            value = dict(saved)
             for key in missing:
                 value[key] = copy.deepcopy(default[key])
             print('[Offline LAN 0.9.22] repaired saved lobby filter %s: '
-                  'dropped %r, added %r' % (name, unknown, missing))
+                  'added %r' % (name, missing))
         else:
             value = copy.deepcopy(default)
             print('[Offline LAN 0.9.22] replaced non-mapping saved lobby '
@@ -2562,6 +2565,7 @@ class OfflineCompatibility(object):
 
         try:
             self._install_host()
+            _enable_vehicle_restore()
             account_type.__init__ = account_init
             account_type.__getattribute__ = account_getattribute
             if self._original_account_become_player is not None:
@@ -3765,6 +3769,25 @@ class OfflineCompatibility(object):
 
         instance.destroy = guarded_destroy
         return True
+
+
+def _enable_vehicle_restore():
+    """Force ServerSettings.isVehicleRestoreEnabled() True."""
+    try:
+        from gui.ServerSettings import ServerSettings
+    except ImportError:
+        try:
+            from gui.LobbyContext import ServerSettings
+        except ImportError:
+            print('[Offline LAN 0.9.22] vehicle restore: ServerSettings '
+                  'is unavailable')
+            return False
+    if getattr(ServerSettings, '_offlineVehicleRestore', False):
+        return False
+    ServerSettings.isVehicleRestoreEnabled = lambda self: True
+    ServerSettings._offlineVehicleRestore = True
+    print('[Offline LAN 0.9.22] vehicle restore enabled')
+    return True
 
 
 g_compatibility = OfflineCompatibility()

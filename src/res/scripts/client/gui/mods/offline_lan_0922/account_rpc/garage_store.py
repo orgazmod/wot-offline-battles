@@ -135,6 +135,12 @@ def _ledger_payload(snapshot):
         encoded = _encode_bytes(compact_descr)
         if encoded is not None:
             recycled.append([encoded, _int_value(dismissed_at)])
+    recycled_vehicles = []
+    for compact_descr, sold_at in (
+            snapshot.get('recycleBinVehicles') or {}).values():
+        encoded = _encode_bytes(compact_descr)
+        if encoded is not None:
+            recycled_vehicles.append([encoded, _int_value(sold_at)])
     return {
         'wallet': dict(
             (name, max(0, int(wallet.get(name, 0) or 0)))
@@ -145,6 +151,7 @@ def _ledger_payload(snapshot):
         'berths': max(0, int(snapshot.get('accountBerths', 0) or 0)),
         'barracks': sorted(barracks),
         'recycleBin': sorted(recycled),
+        'recycleBinVehicles': sorted(recycled_vehicles),
     }
 
 
@@ -276,6 +283,10 @@ def _apply_ledger(staged, stored):
     recycled = ledger.get('recycleBin')
     if isinstance(recycled, (list, tuple)):
         staged['recycleBinTankmen'] = _restored_recycle_bin(staged, recycled)
+    recycled_vehicles = ledger.get('recycleBinVehicles')
+    if isinstance(recycled_vehicles, (list, tuple)):
+        staged['recycleBinVehicles'] = _restored_recycle_bin_vehicles(
+            staged, recycled_vehicles)
     return True
 
 
@@ -322,6 +333,24 @@ def _restored_recycle_bin(staged, rows):
         if not decoded:
             continue
         restored[next_id] = (decoded, _int_value(dismissed_at))
+        next_id += 1
+    return restored
+
+
+def _restored_recycle_bin_vehicles(staged, rows):
+    """Rebuild the sold-vehicle bin from the ledger.
+
+    The bin keeps the encoded compact descriptor and the sale timestamp;
+    inventory ids are not stored, because a restored garage hands out
+    fresh ids on every start.
+    """
+    restored = {}
+    next_id = 1
+    for encoded, sold_at in (rows or ()):
+        decoded = _decode_bytes(encoded)
+        if decoded is None:
+            continue
+        restored[next_id] = (decoded, _int_value(sold_at))
         next_id += 1
     return restored
 

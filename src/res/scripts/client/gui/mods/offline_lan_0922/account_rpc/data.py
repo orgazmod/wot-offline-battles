@@ -102,17 +102,41 @@ def _restore_config(vehicle):
             tankmen[name] = max(0, int(config.get(name, 0) or 0))
         except (TypeError, ValueError):
             tankmen[name] = 0
-    return {'tankmen': tankmen, 'vehicles': {}}
+    return {
+        'tankmen': tankmen,
+        'vehicles': {
+            'sellToRestoreFactor': 1.1,
+            'premiumDuration': 72 * 60 * 60,
+            'actionCooldown': 0,
+        },
+    }
+
+
+def _restore_type(vehicle, int_cd):
+    """Return the client's RESTORE_VEHICLE_TYPE for one vehicle.
+
+    A vehicle the shop no longer sells is a reward or event tank: it
+    restores without a limit.  Everything the shop still offers is a
+    regular premium with the bounded 72-hour window.
+    """
+    not_in_shop = vehicle.get('notInShopItems') or ()
+    if int_cd in not_in_shop:
+        return 1
+    return 0
 
 
 def _recycle_bin(vehicle):
-    """Return the dismissed crew #1513's own recycle bin cache carries.
+    """Return the recycle bin as #1513's RecycleBinRequester reads it.
 
-    ``ClientRecycleBin.synchronize`` copies the whole ``recycleBin`` diff into
-    its cache, and ``RecycleBinRequester.getTankmen`` reads
-    ``recycleBin['tankmen']['buffer']`` as ``{tmanInvID: (compactDescr,
-    dismissedAt)}``.
+    The client caches ``recycleBin['vehicles']['buffer']`` as
+    ``{intCD_type: (restoreType, changedAt)}``.  The ledger keeps sold
+    vehicles as ``[[encoded_compDescr, soldAt], ...]`` (a list from disk)
+    or ``{invID: (encoded_compDescr, soldAt)}`` (a mapping from a sale in
+    the current session).  Both are normalized here into the client shape.
     """
+    import base64
+    from items import vehicles as _vehicles
+
     rows = vehicle.get('recycleBinTankmen')
     buffer_rows = {}
     if isinstance(rows, dict):
@@ -123,10 +147,47 @@ def _recycle_bin(vehicle):
                     compact_descr, int(dismissed_at))
             except (TypeError, ValueError):
                 continue
-    return {'tankmen': {'buffer': buffer_rows}, 'vehicles': {'buffer': {}}}
+
+    def _one(encoded, sold_at):
+        if isinstance(encoded, bytes):
+            decoded = encoded
+        else:
+            try:
+                decoded = base64.b64decode(encoded)
+            except Exception:
+                return
+        try:
+            descr = _vehicles.VehicleDescr(compactDescr=decoded)
+            int_cd = int(descr.type.compactDescr)
+        except Exception:
+            return
+        restore_type = _restore_type(vehicle, int_cd)
+        vehicle_buffer[int_cd] = (restore_type, int(sold_at))
+
+    vehicle_buffer = {}
+    vehicle_rows = vehicle.get('recycleBinVehicles')
+    if isinstance(vehicle_rows, (list, tuple)):
+        for entry in vehicle_rows:
+            try:
+                encoded, sold_at = entry
+            except (TypeError, ValueError):
+                continue
+            _one(encoded, sold_at)
+    elif isinstance(vehicle_rows, dict):
+        for entry in vehicle_rows.values():
+            try:
+                encoded, sold_at = entry
+            except (TypeError, ValueError):
+                continue
+            _one(encoded, sold_at)
+
+    return {
+        'tankmen': {'buffer': buffer_rows},
+        'vehicles': {'buffer': vehicle_buffer},
+    }
 
 
-def recycle_bin_diff(vehicle, touched_tankmen):
+def recycle_bin_diff(vehicle, touched_tankmen, touched_vehicles=()):
     """Return the recycle-bin rows one command moved, as a #1513 diff.
 
     ``ClientRecycleBin.synchronize`` runs the pushed section through
@@ -151,7 +212,30 @@ def recycle_bin_diff(vehicle, touched_tankmen):
         except (TypeError, ValueError):
             continue
         buffer_rows[tankman_id] = (compact_descr, int(dismissed_at))
-    return {'tankmen': {'buffer': buffer_rows}}
+    from items import vehicles as _vehicles_mod
+    vehicle_rows = vehicle.get('recycleBinVehicles')
+    vehicle_rows = vehicle_rows if isinstance(vehicle_rows, dict) else {}
+    vehicle_buffer = {}
+    for inv_id in (touched_vehicles or ()):
+        try:
+            inv_id = int(inv_id)
+        except (TypeError, ValueError):
+            continue
+        entry = vehicle_rows.get(inv_id)
+        if entry is None:
+            continue
+        try:
+            compact_descr, sold_at = entry
+            descr = _vehicles_mod.VehicleDescr(compactDescr=compact_descr)
+            int_cd = int(descr.type.compactDescr)
+            restore_type = _restore_type(vehicle, int_cd)
+            vehicle_buffer[int_cd] = (restore_type, int(sold_at))
+        except Exception:
+            continue
+    return {
+        'tankmen': {'buffer': buffer_rows},
+        'vehicles': {'buffer': vehicle_buffer},
+    }
 
 
 # What a snapshot written before the skill-reset table existed publishes.

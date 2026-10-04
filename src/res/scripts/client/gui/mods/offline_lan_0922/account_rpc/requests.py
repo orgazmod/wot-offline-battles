@@ -97,6 +97,7 @@ def _fitting(context, mutate, extension=None):
     touched_items = state.touched_items()
     moved_tankmen = state.touched_tankmen()
     moved_recycled = state.touched_recycled()
+    moved_recycled_vehicles = state.touched_recycled_vehicles()
 
     def publish(on_complete=None):
         diff = data.inventory(
@@ -119,12 +120,12 @@ def _fitting(context, mutate, extension=None):
                     changed_stats[name] = added
         if changed_stats:
             diff['stats'] = changed_stats
-        if moved_recycled:
+        if moved_recycled or moved_recycled_vehicles:
             # PlayerAccount._update hands every diff to the recycle bin, so
             # who was dismissed and who was hired back travel with the same
             # push that moved them out of the barracks.
             diff['recycleBin'] = data.recycle_bin_diff(
-                state.snapshot(), moved_recycled)
+                state.snapshot(), moved_recycled, moved_recycled_vehicles)
         built = _clock()
         completed = [False]
 

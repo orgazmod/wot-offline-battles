@@ -790,6 +790,7 @@ def _selected_vehicle(config, restore_saved=True):
             # Who the account dismissed and when, as the barracks' own
             # recovery list reads it.
             'recycleBinTankmen': {},
+            'recycleBinVehicles': {},
             'nextInventoryID': len(records) + 1,
             'defaultVehicleSettings': default_settings,
         })
