@@ -114,7 +114,18 @@ def _vehicle_type_name(value):
 
 
 def vehicle_choice_is_eligible(choice):
-    """Mirror the server/hidden-worker admissible stock vehicle set."""
+    """Mirror the server/hidden-worker admissible stock vehicle set.
+
+    Bots use researchable tech only: any vehicle carrying a premium tag is
+    excluded from the bot lineup, even though the player still sees and can
+    play those vehicles in their own garage.
+    """
+    tags = choice.get("tags") or ()
+    if not isinstance(tags, (list, tuple, set, frozenset)):
+        return False
+    if set(str(tag) for tag in tags) & {
+            "premium", "premiumIGR", "premiumPlus", "premiumTier"}:
+        return False
     return (vehicle_type_name(choice) not in RETIRED_BOT_VEHICLES_0922 and
             vehicle_choice_is_standard(choice))
 
