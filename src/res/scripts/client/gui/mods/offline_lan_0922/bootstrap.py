@@ -54,6 +54,30 @@ _postbattle_store = None
 
 
 
+def _read_custom_shop():
+    """Read custom_shop.json from the mod's AppData folder.
+
+    Returns a dict of {'nation:VehicleName': {'gold': N}} or an empty
+    dict if the file is missing, disabled or malformed.
+    """
+    import json
+    import os
+    try:
+        from gui.mods.offline_lan_0922 import config as port_config
+        path = os.path.join(port_config.USER_DATA_DIR, 'custom_shop.json')
+        if not os.path.isfile(path):
+            return {}
+        with open(path, 'rb') as stream:
+            data = json.load(stream)
+        if not isinstance(data, dict) or not data.get('enabled'):
+            return {}
+        entries = data.get('vehicles')
+        if not isinstance(entries, dict):
+            return {}
+        return entries
+    except Exception:
+        return {}
+
 
 def _schedule(delay, function):
     """Retire the handle before running it; it is no longer cancellable."""
@@ -706,6 +730,32 @@ def _selected_vehicle(config, restore_saved=True):
         shop_item_prices, not_in_shop_items = economy.shop_prices(prices)
         shop_vehicle_offers = economy.retail_gold_vehicle_offers(
             vehicles, nations, prices)
+        # custom_shop.json can promote hidden vehicles back into the shop.
+        _custom_shop = _read_custom_shop()
+        _custom_shop_descrs = set()
+        for _name, _price in _custom_shop.items():
+            if not isinstance(_price, dict):
+                continue
+            try:
+                _nation_name, _vehicle_name = _name.split(':', 1)
+                _nation_id = list(nations.NAMES).index(_nation_name)
+                _resolved = vehicles.g_list.getIDsByName(_name)
+                if not _resolved:
+                    continue
+                _compact = int(vehicles.makeIntCompactDescrByID(
+                    'vehicle', _nation_id, _resolved[1]))
+            except Exception:
+                continue
+            _money = {}
+            for _cur in ('gold', 'credits', 'crystal'):
+                if _cur in _price:
+                    _money[_cur] = int(_price[_cur])
+            if not _money:
+                continue
+            shop_item_prices[_compact] = _money
+            not_in_shop_items.discard(_compact)
+            _custom_shop_descrs.add(_compact)
+        shop_vehicle_offers |= _custom_shop_descrs
         owned_types = _owned_vehicle_types(
             vehicles, nations, career, prices, consult_save=restore_saved)
         restricted = owned_types is not None
