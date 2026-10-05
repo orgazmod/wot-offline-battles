@@ -1,0 +1,632 @@
+{
+  "enabled": true,
+  "vehicles": {
+    "china:Ch01_Type59": {
+      "gold": 11500
+    },
+    "china:Ch01_Type59_Gold": {
+      "gold": 155520
+    },
+    "china:Ch02_Type62": {
+      "gold": 5000
+    },
+    "china:Ch03_WZ-111": {
+      "gold": 12500
+    },
+    "china:Ch03_WZ_111_A": {
+      "gold": 12500
+    },
+    "china:Ch14_T34_3": {
+      "gold": 11000
+    },
+    "china:Ch22_113": {
+      "credits": 6100000
+    },
+    "china:Ch22_113P": {
+      "gold": 22500
+    },
+    "china:Ch22_113_Beijing_Opera": {
+      "gold": 22500
+    },
+    "china:Ch23_112": {
+      "gold": 12250
+    },
+    "china:Ch24_Type64": {
+      "gold": 3500
+    },
+    "china:Ch25_121_mod_1971B": {
+      "gold": 32000
+    },
+    "china:Ch26_59_Patton": {
+      "gold": 9000
+    },
+    "china:Ch39_WZ120_1G_FT": {
+      "gold": 9000
+    },
+    "china:Ch40_WZ120G_FT": {
+      "gold": 13000
+    },
+    "czech:Cz01_Skoda_T40": {
+      "gold": 3600
+    },
+    "france:F19_Lorraine40t": {
+      "gold": 10700
+    },
+    "france:F27_FCM_36Pak40": {
+      "gold": 1190
+    },
+    "france:F28_105_leFH18B2": {
+      "gold": 2100
+    },
+    "france:F28_105_leFH18B2_IGR": {
+      "gold": 1
+    },
+    "france:F64_AMX_50Fosh_155": {
+      "gold": 5
+    },
+    "france:F65_FCM_50t": {
+      "gold": 11900
+    },
+    "france:F68_AMX_Chasseur_de_char_46": {
+      "gold": 7450
+    },
+    "france:F69_AMX13_57_100": {
+      "gold": 5000
+    },
+    "france:F69_AMX13_57_100_GrandFinal": {
+      "gold": 5000
+    },
+    "france:F73_M4A1_Revalorise": {
+      "gold": 9750
+    },
+    "france:F74_AMX_M4_1949": {
+      "gold": 12000
+    },
+    "france:F74_AMX_M4_1949_Liberte": {
+      "gold": 11700
+    },
+    "france:F84_Somua_SM": {
+      "gold": 100
+    },
+    "france:F89_Canon_dassaut_de_105": {
+      "gold": 9750
+    },
+    "france:F97_ELC_EVEN_90": {
+      "gold": 6500
+    },
+    "germany:G100_Gtraktor_Krupp": {
+      "gold": 950
+    },
+    "germany:G104_Stug_IV": {
+      "gold": 2000
+    },
+    "germany:G105_T-55_NVA_DDR": {
+      "gold": 17500
+    },
+    "germany:G106_PzKpfwPanther_AusfF": {
+      "gold": 7300
+    },
+    "germany:G107_PzKpfwIII_AusfK": {
+      "gold": 1500
+    },
+    "germany:G108_PzKpfwII_AusfD": {
+      "gold": 750
+    },
+    "germany:G109_Steyr_WT": {
+      "gold": 7000
+    },
+    "germany:G112_KanonenJagdPanzer": {
+      "gold": 10000
+    },
+    "germany:G112_KanonenJagdPanzer_105": {
+      "gold": 10000
+    },
+    "germany:G114_Rheinmetall_Skorpian": {
+      "gold": 10900
+    },
+    "germany:G114_Skorpian": {
+      "gold": 12000
+    },
+    "germany:G115_Typ_205_4_Jun": {
+      "gold": 5
+    },
+    "germany:G116_Turan_III_prot": {
+      "gold": 1650
+    },
+    "germany:G117_Toldi_III": {
+      "gold": 900
+    },
+    "germany:G118_VK4503": {
+      "gold": 7700
+    },
+    "germany:G119_Panzer58": {
+      "gold": 9000
+    },
+    "germany:G119_Panzer58_BF": {
+      "gold": 8700
+    },
+    "germany:G119_Pz58_Mutz": {
+      "gold": 9000
+    },
+    "germany:G120_M41_90": {
+      "gold": 6500
+    },
+    "germany:G120_M41_90_GrandFinal": {
+      "gold": 6500
+    },
+    "germany:G122_VK6501H": {
+      "gold": 5
+    },
+    "germany:G136_Tiger_131": {
+      "gold": 3500
+    },
+    "germany:G137_PzVI_Tiger_217": {
+      "gold": 100
+    },
+    "germany:G138_VK168_02": {
+      "gold": 12750
+    },
+    "germany:G138_VK168_02_Mauerbrecher": {
+      "gold": 12750
+    },
+    "germany:G16_PzVIB_Tiger_II_F": {
+      "gold": 100
+    },
+    "germany:G32_PzV_PzIV": {
+      "gold": 3000
+    },
+    "germany:G32_PzV_PzIV_CN": {
+      "gold": 3000
+    },
+    "germany:G32_PzV_PzIV_ausf_Alfa": {
+      "gold": 1500
+    },
+    "germany:G32_PzV_PzIV_ausf_Alfa_CN": {
+      "gold": 1500
+    },
+    "germany:G33_H39_captured": {
+      "gold": 750
+    },
+    "germany:G34_S35_captured": {
+      "gold": 1000
+    },
+    "germany:G35_B-1bis_captured": {
+      "gold": 1250
+    },
+    "germany:G36_PzII_J": {
+      "gold": 1000
+    },
+    "germany:G41_DickerMax": {
+      "gold": 3200
+    },
+    "germany:G44_JagdTigerH": {
+      "gold": 100
+    },
+    "germany:G46_T-25": {
+      "gold": 1500
+    },
+    "germany:G48_E-25": {
+      "gold": 6700
+    },
+    "germany:G48_E-25_IGR": {
+      "gold": 1
+    },
+    "germany:G50_T-15": {
+      "gold": 900
+    },
+    "germany:G51_Lowe": {
+      "gold": 12500
+    },
+    "germany:G58_VK4502P7": {
+      "gold": 6250
+    },
+    "germany:G65_JagdTiger_SdKfz_185": {
+      "gold": 10000
+    },
+    "germany:G65_JagdTiger_SdKfz_185_IGR": {
+      "gold": 1
+    },
+    "germany:G70_PzIV_Hydro": {
+      "gold": 2500
+    },
+    "germany:G77_PzIV_Schmalturm": {
+      "gold": 3750
+    },
+    "germany:G78_Panther_M10": {
+      "gold": 5750
+    },
+    "germany:G79_Pz_IV_AusfGH": {
+      "credits": 373000
+    },
+    "germany:G85_Auf_Panther": {
+      "credits": 1360000
+    },
+    "germany:G85_Aufklarungspanzer_V": {
+      "gold": 100
+    },
+    "germany:G92_VK7201": {
+      "gold": 22500
+    },
+    "germany:G98_Waffentrager_E100": {
+      "credits": 6100000
+    },
+    "germany:G98_Waffentrager_E100_P": {
+      "gold": 30000
+    },
+    "japan:J02_Te_Ke": {
+      "gold": 750
+    },
+    "japan:J05_Ke_Ni_B": {
+      "gold": 1000
+    },
+    "japan:J12_Chi_Nu_Kai": {
+      "gold": 1500
+    },
+    "japan:J18_STA_2_3": {
+      "gold": 7400
+    },
+    "japan:J19_Tiger_I_Jpn": {
+      "gold": 3500
+    },
+    "japan:J29_Nameless": {
+      "gold": 9000
+    },
+    "japan:J30_Edelweiss": {
+      "gold": 7400
+    },
+    "poland:Pl03_PzV_Poland": {
+      "gold": 3370
+    },
+    "sweden:S01_Strv_74_A2": {
+      "gold": 3800
+    },
+    "sweden:S15_L_60": {
+      "gold": 750
+    },
+    "sweden:S22_Strv_S1": {
+      "gold": 10500
+    },
+    "sweden:S23_Strv_81": {
+      "gold": 11000
+    },
+    "sweden:S23_Strv_81_sabaton": {
+      "gold": 11000
+    },
+    "uk:GB13_FV215b": {
+      "gold": 5
+    },
+    "uk:GB33_Sentinel_AC_I": {
+      "gold": 1200
+    },
+    "uk:GB35_Sentinel_AC_IV": {
+      "gold": 3600
+    },
+    "uk:GB48_FV215b_183": {
+      "gold": 5
+    },
+    "uk:GB51_Excelsior": {
+      "gold": 1500
+    },
+    "uk:GB52_A45": {
+      "gold": 7000
+    },
+    "uk:GB63_TOG_II": {
+      "gold": 3500
+    },
+    "uk:GB68_Matilda_Black_Prince": {
+      "gold": 1750
+    },
+    "uk:GB70_FV4202_105": {
+      "credits": 6100000
+    },
+    "uk:GB70_N_FV4202_105": {
+      "gold": 7300
+    },
+    "uk:GB71_AT_15A": {
+      "gold": 6500
+    },
+    "uk:GB76_Mk_VIC": {
+      "gold": 750
+    },
+    "uk:GB78_Sexton_I": {
+      "gold": 1250
+    },
+    "uk:GB84_Chieftain_Mk6": {
+      "gold": 100
+    },
+    "uk:GB85_Cromwell_Berlin": {
+      "gold": 3450
+    },
+    "uk:GB87_Chieftain_T95_turret": {
+      "gold": 5
+    },
+    "uk:GB88_T95_Chieftain_turret": {
+      "gold": 5
+    },
+    "uk:GB93_Caernarvon_AX": {
+      "gold": 100
+    },
+    "usa:A08_T23": {
+      "credits": 2103000
+    },
+    "usa:A101_M56": {
+      "gold": 7000
+    },
+    "usa:A102_T28_concept": {
+      "gold": 7000
+    },
+    "usa:A104_M4A3E8A": {
+      "gold": 3750
+    },
+    "usa:A106_M48A2_120": {
+      "gold": 5
+    },
+    "usa:A111_T25_Pilot": {
+      "gold": 7450
+    },
+    "usa:A112_T71E2": {
+      "gold": 5750
+    },
+    "usa:A115_Chrysler_K": {
+      "gold": 12500
+    },
+    "usa:A117_T26E5": {
+      "gold": 9700
+    },
+    "usa:A117_T26E5_Patriot": {
+      "gold": 7450
+    },
+    "usa:A118_M4_Thunderbolt": {
+      "gold": 3370
+    },
+    "usa:A13_T34_hvy": {
+      "gold": 12000
+    },
+    "usa:A13_T34_hvy_BF": {
+      "gold": 12000
+    },
+    "usa:A13_T34_hvy_IGR": {
+      "gold": 1
+    },
+    "usa:A15_T57": {
+      "credits": 3300
+    },
+    "usa:A19_T2_lt": {
+      "gold": 750
+    },
+    "usa:A21_T14": {
+      "gold": 1500
+    },
+    "usa:A26_T18": {
+      "credits": 3000
+    },
+    "usa:A33_MTLS-1G14": {
+      "gold": 1250
+    },
+    "usa:A43_M22_Locust": {
+      "gold": 900
+    },
+    "usa:A44_M4A2E4": {
+      "gold": 1500
+    },
+    "usa:A45_M6A2E1": {
+      "gold": 7500
+    },
+    "usa:A62_Ram-II": {
+      "gold": 1750
+    },
+    "usa:A63_M46_Patton_KR": {
+      "gold": 9000
+    },
+    "usa:A74_T1_E6": {
+      "gold": 750
+    },
+    "usa:A78_M4_Improved": {
+      "gold": 1500
+    },
+    "usa:A80_T26_E4_SuperPershing": {
+      "gold": 7200
+    },
+    "usa:A81_T95_E2": {
+      "gold": 7500
+    },
+    "usa:A86_T23E3": {
+      "gold": 7000
+    },
+    "usa:A92_M60": {
+      "gold": 22500
+    },
+    "usa:A93_T7_Combat_Car": {
+      "gold": 750
+    },
+    "usa:A95_T95_E6": {
+      "gold": 22500
+    },
+    "usa:A99_T92_LT": {
+      "gold": 6500
+    },
+    "ussr:R05_KV": {
+      "credits": 410000
+    },
+    "ussr:R105_BT_7A": {
+      "gold": 900
+    },
+    "ussr:R108_T34_85M": {
+      "gold": 3750
+    },
+    "ussr:R110_Object_260": {
+      "gold": 22500
+    },
+    "ussr:R111_ISU130": {
+      "gold": 9000
+    },
+    "ussr:R112_T54_45": {
+      "gold": 8750
+    },
+    "ussr:R113_Object_730": {
+      "gold": 12000
+    },
+    "ussr:R114_Object_244": {
+      "gold": 3600
+    },
+    "ussr:R115_IS-3_auto": {
+      "gold": 12190
+    },
+    "ussr:R116_ISU122C_Berlin": {
+      "gold": 4750
+    },
+    "ussr:R117_T34_85_Rudy": {
+      "gold": 3550
+    },
+    "ussr:R118_T28_F30": {
+      "gold": 1200
+    },
+    "ussr:R119_Object_777": {
+      "gold": 5
+    },
+    "ussr:R120_T22SR_A22": {
+      "gold": 5
+    },
+    "ussr:R121_KV4_KTT": {
+      "gold": 9000
+    },
+    "ussr:R122_T44_100": {
+      "gold": 7500
+    },
+    "ussr:R122_T44_100B": {
+      "gold": 100
+    },
+    "ussr:R123_Kirovets_1": {
+      "gold": 10700
+    },
+    "ussr:R125_T_45": {
+      "gold": 750
+    },
+    "ussr:R126_Object_730_5": {
+      "gold": 5
+    },
+    "ussr:R127_T44_100_P": {
+      "gold": 100
+    },
+    "ussr:R128_KV4_Kreslavskiy": {
+      "gold": 5
+    },
+    "ussr:R129_Object_257": {
+      "gold": 22500
+    },
+    "ussr:R133_KV_122": {
+      "gold": 7000
+    },
+    "ussr:R134_Object_252K": {
+      "gold": 12500
+    },
+    "ussr:R134_Object_252U": {
+      "gold": 12500
+    },
+    "ussr:R135_T_103": {
+      "gold": 100
+    },
+    "ussr:R140_M4_Loza": {
+      "gold": 3550
+    },
+    "ussr:R143_T_29": {
+      "gold": 900
+    },
+    "ussr:R146_STG": {
+      "gold": 7450
+    },
+    "ussr:R146_STG_Tday": {
+      "gold": 7450
+    },
+    "ussr:R31_Valentine_LL": {
+      "gold": 1000
+    },
+    "ussr:R31_Valentine_LL_IGR": {
+      "gold": 1
+    },
+    "ussr:R32_Matilda_II_LL": {
+      "gold": 1500
+    },
+    "ussr:R33_Churchill_LL": {
+      "gold": 1500
+    },
+    "ussr:R34_BT-SV": {
+      "gold": 1000
+    },
+    "ussr:R38_KV-220": {
+      "gold": 1500
+    },
+    "ussr:R38_KV-220_beta": {
+      "gold": 1500
+    },
+    "ussr:R49_SU100Y": {
+      "gold": 3250
+    },
+    "ussr:R50_SU76I": {
+      "gold": 1000
+    },
+    "ussr:R54_KV-5": {
+      "gold": 9000
+    },
+    "ussr:R54_KV-5_IGR": {
+      "gold": 1
+    },
+    "ussr:R56_T-127": {
+      "gold": 850
+    },
+    "ussr:R61_Object252": {
+      "gold": 11800
+    },
+    "ussr:R61_Object252_BF": {
+      "gold": 11800
+    },
+    "ussr:R67_M3_LL": {
+      "gold": 850
+    },
+    "ussr:R68_A-32": {
+      "gold": 2500
+    },
+    "ussr:R70_T_50_2": {
+      "credits": 725000
+    },
+    "ussr:R71_IS_2B": {
+      "gold": 5250
+    },
+    "ussr:R75_SU122_54": {
+      "credits": 3510000
+    },
+    "ussr:R78_SU_85I": {
+      "gold": 2300
+    },
+    "ussr:R84_Tetrarch_LL": {
+      "gold": 750
+    },
+    "ussr:R86_LTP": {
+      "gold": 850
+    },
+    "ussr:R89_SU122_44": {
+      "gold": 6750
+    },
+    "ussr:R93_Object263B": {
+      "credits": 6100000
+    },
+    "ussr:R95_Object_907": {
+      "gold": 22500
+    },
+    "ussr:R95_Object_907A": {
+      "gold": 22500
+    },
+    "ussr:R96_Object_430B": {
+      "credits": 6100000
+    },
+    "ussr:R98_T44_85": {
+      "gold": 7200
+    },
+    "ussr:R98_T44_85M": {
+      "gold": 100
+    },
+    "ussr:R99_T44_122": {
+      "gold": 5
+    }
+  }
+}

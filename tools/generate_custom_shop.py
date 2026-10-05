@@ -1,7 +1,11 @@
 """Generate custom_shop.json from the client's own vehicle roster.
 
-Reads prices the client itself publishes, so no value is invented.
-Vehicles with no published price are skipped; add them by hand if needed.
+Reads prices the client itself publishes. Keeps only vehicles the
+ordinary tech tree does not offer:
+    - premium vehicles (gold price above zero)
+    - reward / event / hidden vehicles (the client marks them notInShop)
+Regular researchable vehicles are left where they belong: in the
+tech tree, unlocked through research.
 
 Usage:
     python tools/generate_custom_shop.py GAME_ROOT OUTPUT.json
@@ -34,6 +38,7 @@ def main():
 
     vehicles = {}
     skipped_clones = 0
+    skipped_tech = 0
     skipped_no_price = 0
     for r in roster:
         name = r['vehicle']
@@ -43,12 +48,18 @@ def main():
         full_name = '%s:%s' % (r['nation'], name)
         credits = int(r.get('credits', 0) or 0)
         gold = int(r.get('gold', 0) or 0)
+        not_in_shop = bool(r.get('notInShop'))
+
         if gold > 0:
             vehicles[full_name] = {'gold': gold}
-        elif credits > 0:
-            vehicles[full_name] = {'credits': credits}
+        elif not_in_shop:
+            if credits > 0:
+                vehicles[full_name] = {'credits': credits}
+            else:
+                skipped_no_price += 1
+                continue
         else:
-            skipped_no_price += 1
+            skipped_tech += 1
             continue
 
     payload = {'enabled': True, 'vehicles': vehicles}
@@ -56,8 +67,8 @@ def main():
         json.dump(payload, stream, indent=2, ensure_ascii=False,
                   sort_keys=True)
     print('Wrote %d vehicles to %s' % (len(vehicles), os.path.abspath(output)))
-    print('Skipped %d clones, %d without published price' %
-          (skipped_clones, skipped_no_price))
+    print('Skipped %d clones, %d tech-tree, %d without published price' %
+          (skipped_clones, skipped_tech, skipped_no_price))
     return 0
 
 
