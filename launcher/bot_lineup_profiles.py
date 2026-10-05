@@ -116,14 +116,15 @@ def _vehicle_type_name(value):
 def vehicle_choice_is_eligible(choice):
     """Mirror the server/hidden-worker admissible stock vehicle set.
 
-    Bots use researchable tech only. A researchable vehicle is sold for
-    credits and not for gold; anything with a gold price, or with no
-    price at all (a reward), is a premium or special vehicle and is
-    excluded from the bot lineup.
+    Bots use researchable tech only: any vehicle carrying a premium tag is
+    excluded from the bot lineup, even though the player still sees and can
+    play those vehicles in their own garage.
     """
-    if not choice.get("credits", 0):
+    tags = choice.get("tags") or ()
+    if not isinstance(tags, (list, tuple, set, frozenset)):
         return False
-    if choice.get("gold", 0):
+    if set(str(tag) for tag in tags) & {
+            "premium", "premiumIGR", "premiumPlus", "premiumTier"}:
         return False
     return (vehicle_type_name(choice) not in RETIRED_BOT_VEHICLES_0922 and
             vehicle_choice_is_standard(choice))

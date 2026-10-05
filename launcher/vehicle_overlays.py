@@ -776,8 +776,7 @@ def list_vehicle_choices(game_root):
                 status["path"], nation)
         label = _vehicle_label(record, translators[nation])
         choice = dict((key, record[key]) for key in (
-            "nation", "vehicle", "member", "tags", "vehicleClass", "level",
-            "credits", "gold", "notInShop"))
+            "nation", "vehicle", "member", "tags", "vehicleClass", "level"))
         choice["label"] = label
         choices.append(choice)
     return choices
