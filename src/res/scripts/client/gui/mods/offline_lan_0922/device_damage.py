@@ -35,8 +35,8 @@ import random
 _DAMAGE_CONFIG_CACHE = None
 
 _DAMAGE_CONFIG_DEFAULT = {
-  "_комментарий": "false = оригинал WoT, true = свои шансы, \"deterministic\" = 100% крит",
-  "custom": false,
+  "_комментарий": "False = оригинал WoT, True = свои шансы, \"deterministic\" = 100% крит",
+  "custom": False,
   "chances": {
     "ammoBayHealth":          {"projectile": 0.73, "explosion": 0.73},
     "engineHealth":           {"projectile": 0.55, "explosion": 0.55},

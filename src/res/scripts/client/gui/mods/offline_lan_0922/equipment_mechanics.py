@@ -817,10 +817,11 @@ class EquipmentState(object):
 
     __slots__ = (
         'contract', 'uses_left', 'ready_at', 'active',
-        '_auto_pending_since', '_ai_pending_since')
+        '_auto_pending_since', '_ai_pending_since', 'bot_name')
 
     def __init__(self, contract, now=0.0):
         self.contract = _validate_contract(contract)
+        self.bot_name = '?'
         reuse_count = _integer(self.contract.get('reuseCount'), 0)
         # reuseCount counts uses after the initial charge; -1 is unlimited.
         self.uses_left = -1 if reuse_count < 0 else reuse_count + 1
@@ -853,8 +854,9 @@ class EquipmentState(object):
                     self.contract.get('cooldownSeconds'), 0.0))
         self._auto_pending_since = None
         self._ai_pending_since = None
-        _bot_debug_log('[bot] USED: %s (action=%s)' %
-                       (self.contract.get('name'), effect.get('action')))
+        _bot_debug_log('[bot] USED: [%s] %s action=%s target=%s' % (
+            self.bot_name, self.contract.get('name'),
+            effect.get('action'), effect.get('selected')))
         return effect
 
     def poll_auto(self, now, critical=None):

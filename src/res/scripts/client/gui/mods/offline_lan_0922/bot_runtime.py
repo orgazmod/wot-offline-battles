@@ -2925,8 +2925,10 @@ class BotRuntime(object):
                 snapshots, contracts=contracts, now=self._equipment_now)
             self._equipment_states[bot_id] = existing
         states = self._equipment_states.get(bot_id, ())
+        bot_name = self.states.get(bot_id, {}).get('name', 'bot-%d' % bot_id)
         for equipment in states:
             equipment.ready_at = 0.0
+            equipment.bot_name = bot_name
         self._equipment_wire_cache.pop(bot_id, None)
         self._equipment_wire_exposed_in_update.discard(bot_id)
         self._refresh_equipment_passives(bot_id)
@@ -3919,6 +3921,60 @@ class BotRuntime(object):
         state['combat_seq'] = sync['next_seq']
         return True
 
+    @staticmethod
+    def _critical_diff(old, new):
+        """Detailed diff: returns dict with added/removed module states and crew changes."""
+        def _devs(payload):
+            out = {}
+            for r in (payload.get('devices') or ()):
+                if isinstance(r, dict) and r.get('name'):
+                    out[str(r['name'])] = (
+                        str(r.get('state') or ''),
+                        float(r.get('hp', 0.0)),
+                        float(r.get('max_hp', 0.0)))
+            return out
+
+        old = old if isinstance(old, dict) else {}
+        new = new if isinstance(new, dict) else {}
+        old_d = _devs(old)
+        new_d = _devs(new)
+
+        destroyed_added = []
+        critical_added = []
+        critical_healed = []
+
+        for name, (st, hp, mx) in new_d.items():
+            old_st, old_hp, _old_mx = old_d.get(name, ('normal', hp, mx))
+            if st == old_st and abs(hp - old_hp) < 0.5:
+                continue
+            if st == 'destroyed' and old_st != 'destroyed':
+                destroyed_added.append('%s(0/%.0f)' % (name, mx))
+            elif st == 'critical' and old_st == 'normal':
+                critical_added.append('%s(%.0f/%.0f)' % (name, hp, mx))
+            elif st == 'critical' and old_st == 'critical' and hp < old_hp - 0.5:
+                critical_added.append('%s(%.0f/%.0f hp%.0f->%.0f)' % (
+                    name, mx, old_hp, hp))
+            elif st == 'normal' and old_st in ('critical', 'destroyed'):
+                critical_healed.append(name)
+
+        old_ko = set(str(n) for n in (old.get('crew_ko') or ()))
+        new_ko = set(str(n) for n in (new.get('crew_ko') or ()))
+        crew_added = sorted(new_ko - old_ko)
+        crew_revived = sorted(old_ko - new_ko)
+
+        fire_edge = (not old.get('fire')) and bool(new.get('fire'))
+        fire_end = bool(old.get('fire')) and (not new.get('fire'))
+
+        return {
+            'destroyed': destroyed_added,
+            'critical': critical_added,
+            'healed': critical_healed,
+            'crew_ko': crew_added,
+            'crew_ok': crew_revived,
+            'fire_on': fire_edge,
+            'fire_off': fire_end,
+        }
+
     def _apply_server_combat_state(self, state, raw, server_tick):
         """Reconcile an explicit server base/revision/ack boundary.
 
@@ -3932,6 +3988,9 @@ class BotRuntime(object):
         if server_tick is not None and server_tick < sync['server_tick']:
             return False
         candidate = _copy_runtime_state(state)
+        _old_critical = candidate.get('critical')
+        _old_health = int(candidate.get('health', 0))
+        _was_alive = bool(candidate.get('alive', True))
         candidate['health'] = max(0, min(
             int(_number(raw.get('health'), state['health'])),
             int(state['max_health'])))
@@ -3976,6 +4035,47 @@ class BotRuntime(object):
                 fire_timer < 0.0 or fire_timer >= FIRE_TICK_SECONDS):
             raise ValueError('modern bot snapshot combat contract is invalid')
         candidate['critical'] = _canonical_critical(raw['critical'])
+        _diff = self._critical_diff(_old_critical, candidate['critical'])
+        _parts = []
+        if _diff['destroyed']:
+            _parts.append('DESTROYED=%s' % (_diff['destroyed'],))
+        if _diff['critical']:
+            _parts.append('CRIT=%s' % (_diff['critical'],))
+        if _diff['healed']:
+            _parts.append('HEALED=%s' % (_diff['healed'],))
+        if _diff['crew_ko']:
+            _parts.append('KO=%s' % (_diff['crew_ko'],))
+        if _diff['crew_ok']:
+            _parts.append('REVIVED=%s' % (_diff['crew_ok'],))
+        if _diff['fire_on']:
+            _parts.append('FIRE_START')
+        if _diff['fire_off']:
+            _parts.append('FIRE_END')
+        if _parts:
+            _sig_before = _combat_signature(
+                dict(state, critical=_old_critical,
+                     health=_old_health, alive=_was_alive))
+            _sig_after = _combat_signature(candidate)
+            if _sig_before != _sig_after and _parts:
+                equipment_mechanics._bot_debug_log(
+                    '[bot] HIT [%s] hp=%d->%d %s'
+                    % (state.get('name', '?'), _old_health,
+                       int(candidate.get('health', 0)),
+                       ' '.join(_parts)))
+        _is_alive = (bool(candidate.get('alive', True)) and
+                     int(candidate.get('health', 0)) > 0)
+        if _was_alive and not _is_alive:
+            _raw_critical = raw.get('critical') if isinstance(raw.get('critical'), dict) else {}
+            _ko = list(_raw_critical.get('crew_ko') or
+                       (candidate.get('critical') or {}).get('crew_ko') or [])
+            _roster = list(_raw_critical.get('crew_roster') or
+                           (candidate.get('critical') or {}).get('crew_roster') or
+                           _descriptor_crew_roster(
+                               self._descriptors.get(state['id'], {})))
+            equipment_mechanics._bot_debug_log(
+                '[bot] DEATH [%s] vehicle=%s hp=%d->0 roster=%s ko=%s'
+                % (state.get('name', '?'), state.get('vehicle', '?'),
+                   _old_health, list(_roster), list(_ko)))
         if (not candidate['critical'].get('fire', False) and
                 (fire_elapsed != 0.0 or fire_timer != 0.0)):
             raise ValueError('inactive bot fire has a non-zero clock')

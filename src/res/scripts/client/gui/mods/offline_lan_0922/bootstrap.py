@@ -1569,11 +1569,60 @@ def _log_session_identity(requested_mode):
             identity['launcherBuildIdentity']))
 
 
+_STDOUT_QUIET_TAGS = (
+    '[BOT STALL]', '[BOT MOTION]', '[SPG FIRE GATE]',
+    'SIGHT CONTACT', 'CATALOG CONTACT',
+    '[TRACK zone', '[TRACK OUTCOME',
+    'CONTACT move bot=', 'CONTACT worker player=',
+)
+_stdout_filter_installed = False
+
+
+def _stdout_logging_enabled():
+    try:
+        import os
+        from gui.mods.offline_lan_0922 import config as _pc
+        return os.path.isfile(
+            os.path.join(_pc.USER_DATA_DIR, 'debug_log_on.txt'))
+    except Exception:
+        return False
+
+
+def _install_stdout_filter():
+    global _stdout_filter_installed
+    if _stdout_filter_installed:
+        return
+    _stdout_filter_installed = True
+    import sys
+
+    class _FilteredStream(object):
+        def __init__(self, wrapped):
+            self._wrapped = wrapped
+
+        def write(self, data):
+            try:
+                if not _stdout_logging_enabled() and data:
+                    text = data if isinstance(data, str) else str(data)
+                    for tag in _STDOUT_QUIET_TAGS:
+                        if tag in text:
+                            return len(text)
+            except Exception:
+                pass
+            return self._wrapped.write(data)
+
+        def __getattr__(self, name):
+            return getattr(self._wrapped, name)
+
+    sys.stdout = _FilteredStream(sys.stdout)
+    sys.stderr = _FilteredStream(sys.stderr)
+
+
 def init():
     global _callback_id, _client_guard_released, _started
     if _started:
         return
     _started = True
+    _install_stdout_filter()
     requested_mode = os.environ.get(port_config.CLIENT_MODE_ENV, '')
     try:
         requested_mode = requested_mode.strip()
