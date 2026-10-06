@@ -2914,9 +2914,6 @@ class BotRuntime(object):
                     snapshots, contracts=existing_contracts,
                     now=self._equipment_now)
                 if canonical_restore:
-                    # A server-issued authority handoff is an ownership
-                    # boundary. Discard any locally consumed but unacknowledged
-                    # item state from the former authority interval.
                     existing = restored
                     self._equipment_states[bot_id] = existing
         elif snapshots is None:
@@ -2928,6 +2925,8 @@ class BotRuntime(object):
                 snapshots, contracts=contracts, now=self._equipment_now)
             self._equipment_states[bot_id] = existing
         states = self._equipment_states.get(bot_id, ())
+        for equipment in states:
+            equipment.ready_at = 0.0
         self._equipment_wire_cache.pop(bot_id, None)
         self._equipment_wire_exposed_in_update.discard(bot_id)
         self._refresh_equipment_passives(bot_id)
@@ -4189,13 +4188,51 @@ class BotRuntime(object):
                 stun_cleared = True
         return payload is not None or stun_cleared
 
+    def _bot_equipment_context(self, state):
+        """Current engagement hints for the bot's single-charge kit priority.
+
+        Reads the previous tick's selected target and this tick's gun state.
+        A one-frame lag is well inside the kit's reaction window and keeps
+        this call at its existing place in _advance_bot_critical.
+        """
+        bot_id = int(state.get('id', 0))
+        context = {
+            'is_moving': abs(_number(state.get('speed'), 0.0)) > 0.1,
+            'is_reloading': False,
+            'distance_to_target': None,
+        }
+        gun_state = self._gun_states.get(bot_id)
+        if gun_state is not None:
+            descriptor = self._descriptors.get(bot_id, {})
+            reload_factor = _critical_factor(state, descriptor, 'reload')
+            context['is_reloading'] = (
+                gun_state.remaining(reload_factor) > 0.01)
+        target_kind = state.get('target_kind')
+        target_id = state.get('target_id')
+        if target_kind == 'bot' and target_id is not None:
+            target = self.states.get(int(target_id))
+            if target is not None and target.get('alive', True):
+                context['distance_to_target'] = _distance(
+                    _position(state), _position(target))
+        elif target_kind == 'human' and target_id is not None:
+            cached = self._decision_cache.get(bot_id)
+            if cached is not None and len(cached) >= 6:
+                targets = cached[5]
+                planner_id = self._human_planner_id(int(target_id))
+                target = targets.get(planner_id)
+                if target is not None and target.get('alive', True):
+                    context['distance_to_target'] = _distance(
+                        _position(state), _position(target))
+        return context
+
     def _poll_bot_equipments(self, state, descriptor):
         """Run fixed bot kit policy and return replayable effect records."""
         effects = []
+        context = self._bot_equipment_context(state)
         for equipment in self._equipment_states.get(int(state['id']), ()):
             effect = equipment.poll_bot(
                 self._equipment_now, state.get('critical'),
-                stunned=self._bot_stunned(state))
+                stunned=self._bot_stunned(state), context=context)
             if effect is None:
                 continue
             effect = dict(effect)

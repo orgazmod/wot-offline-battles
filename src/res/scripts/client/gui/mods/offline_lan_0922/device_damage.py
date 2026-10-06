@@ -32,6 +32,28 @@ so they are the single place to tune against era footage.
 
 import random
 
+_DAMAGE_CONFIG_CACHE = None
+
+
+def _read_damage_config():
+    global _DAMAGE_CONFIG_CACHE
+    if _DAMAGE_CONFIG_CACHE is not None:
+        return _DAMAGE_CONFIG_CACHE
+    import json
+    import os
+    try:
+        from gui.mods.offline_lan_0922 import config as port_config
+        path = os.path.join(port_config.USER_DATA_DIR, 'damage_config.json')
+        if not os.path.isfile(path):
+            _DAMAGE_CONFIG_CACHE = {}
+        else:
+            with open(path, 'rb') as stream:
+                data = json.load(stream)
+            _DAMAGE_CONFIG_CACHE = data if isinstance(data, dict) else {}
+    except Exception:
+        _DAMAGE_CONFIG_CACHE = {}
+    return _DAMAGE_CONFIG_CACHE
+
 # --- EXACT (from res/scripts/item_defs/vehicles/common/vehicle.xml) ---------
 DAMAGE_RANDOMIZATION = 0.25          # shell devices-damage +/-25% (shell descr)
 MIN_FIRE_STARTING_DAMAGE = 21        # miscParams/minFireStartingDamage
@@ -546,7 +568,30 @@ def module_damage_roll(shell, index=1):
 
 def saving_throw(h_mat, name, by_explosion=False):
     """Chance the device is actually critted when the shell enters its hitbox.
-    Prefers the live material value; falls back to the EXACT era table."""
+
+    custom: false           -- era table / live material
+    custom: true            -- per-device values from damage_config.json chances
+    custom: "deterministic" -- always 1.0 (100% crit)
+    """
+    config = _read_damage_config()
+    custom = config.get('custom', False)
+    if str(custom).lower() == 'deterministic':
+        return 1.0
+    if custom is True or str(custom).lower() == 'true':
+        chances = config.get('chances') or {}
+        entry = chances.get(name) if isinstance(chances, dict) else None
+        if isinstance(entry, dict):
+            key = 'explosion' if by_explosion else 'projectile'
+            if key in entry:
+                try:
+                    return max(0.0, min(1.0, float(entry[key])))
+                except (TypeError, ValueError):
+                    pass
+        elif entry is not None:
+            try:
+                return max(0.0, min(1.0, float(entry)))
+            except (TypeError, ValueError):
+                pass
     attr = 'chanceToHitByExplosion' if by_explosion else 'chanceToHitByProjectile'
     val = getattr(h_mat, attr, None) if h_mat is not None else None
     if val is None:
@@ -555,11 +600,6 @@ def saving_throw(h_mat, name, by_explosion=False):
         return float(val)
     except (TypeError, ValueError):
         return fallback_chance(name, by_explosion)
-
-
-def is_crit_only(name):
-    """True if destroying this device does not also subtract hull HP."""
-    return name in CRIT_ONLY_DEVICES
 
 
 def crew_repair_speed(repair_skill_pct):

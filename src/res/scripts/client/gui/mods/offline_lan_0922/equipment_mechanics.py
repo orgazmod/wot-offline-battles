@@ -10,6 +10,8 @@ BigWorld nor battle runtime code, so the server and desktop tests can use it.
 
 import math
 
+from gui.mods.offline_lan_0922 import device_damage
+
 
 # The exact activation-target vocabulary shared by both wire endpoints.
 # Crew extra names retain their native numbered identity; UI labels are not
@@ -23,8 +25,95 @@ ACTIVATION_CREW_NAMES = frozenset((
     'loader2', 'radioman1', 'radioman2'))
 
 
-DEFAULT_BOT_CONSUMABLE_NAMES = (
+PREMIUM_BOT_CONSUMABLE_NAMES = (
     'autoExtinguishers', 'largeMedkit', 'largeRepairkit')
+REGULAR_BOT_CONSUMABLE_NAMES = (
+    'handExtinguishers', 'smallMedkit', 'smallRepairkit')
+DEFAULT_BOT_CONSUMABLE_NAMES = PREMIUM_BOT_CONSUMABLE_NAMES
+
+CONSUMABLE_KINDS = ('extinguisher', 'medkit', 'repairkit')
+_CONSUMABLE_CHOICES = {
+    'extinguisher': {
+        'large': 'autoExtinguishers',
+        'small': 'handExtinguishers',
+        'none': None,
+    },
+    'medkit': {
+        'large': 'largeMedkit',
+        'small': 'smallMedkit',
+        'none': None,
+    },
+    'repairkit': {
+        'large': 'largeRepairkit',
+        'small': 'smallRepairkit',
+        'none': None,
+    },
+}
+
+
+_BOT_CONFIG_CACHE = None
+
+_DEBUG_LOG_ENABLED = None
+
+def _bot_debug_log(message):
+    global _DEBUG_LOG_ENABLED
+    if _DEBUG_LOG_ENABLED is None:
+        try:
+            import os
+            from gui.mods.offline_lan_0922 import config as _pc
+            _DEBUG_LOG_ENABLED = os.path.isfile(
+                os.path.join(_pc.USER_DATA_DIR, 'debug_log_on.txt'))
+        except Exception:
+            _DEBUG_LOG_ENABLED = False
+    if not _DEBUG_LOG_ENABLED:
+        return
+    try:
+        import os
+        path = os.path.join(os.getcwd(), 'bot_debug.log')
+        with open(path, 'a') as stream:
+            stream.write(message + '\n')
+    except Exception:
+        pass
+
+
+def _read_bot_config():
+    global _BOT_CONFIG_CACHE
+    if _BOT_CONFIG_CACHE is not None:
+        return _BOT_CONFIG_CACHE
+    import json
+    import os
+    try:
+        from gui.mods.offline_lan_0922 import config as port_config
+        path = os.path.join(port_config.USER_DATA_DIR, 'bot_config.json')
+        if not os.path.isfile(path):
+            _BOT_CONFIG_CACHE = {}
+        else:
+            with open(path, 'rb') as stream:
+                data = json.load(stream)
+            _BOT_CONFIG_CACHE = data if isinstance(data, dict) else {}
+    except Exception as error:
+        _bot_debug_log('[bot_config] ERROR %s' % error)
+        _BOT_CONFIG_CACHE = {}
+    return _BOT_CONFIG_CACHE
+
+
+def _bot_consumable_selection():
+    config = _read_bot_config()
+    selection = []
+    for kind in CONSUMABLE_KINDS:
+        mode = str(config.get(kind, 'large')).lower()
+        if mode not in _CONSUMABLE_CHOICES[kind]:
+            mode = 'large'
+        name = _CONSUMABLE_CHOICES[kind][mode]
+        if name is None:
+            continue
+        selection.append((kind, name, mode == 'large'))
+    return selection
+
+
+def _bot_consumable_names():
+    return tuple(name for unused_kind, name, unused_large
+                 in _bot_consumable_selection())
 
 # A Bot has one repair-kit charge, so a functional but damaged module only
 # earns it when losing that module costs the Bot the fight: its gun, its engine
@@ -163,11 +252,15 @@ def project_equipment(descriptor, reaction_seconds=None):
 
 
 def default_bot_consumables(cache):
-    """Project the three bot defaults from this exact client's item cache."""
+    """Project the bot consumables selected in bot_config.json."""
+    names = _bot_consumable_names()
+    _bot_debug_log('[bot] loadout: %r' % (names,))
+    if not names:
+        return []
     ids = cache.equipmentIDs()
     descriptors = cache.equipments()
     result = []
-    for name in DEFAULT_BOT_CONSUMABLE_NAMES:
+    for name in names:
         descriptor = descriptors.get(ids.get(name))
         if descriptor is None:
             raise ValueError('client equipment %r is unavailable' % (name,))
@@ -264,11 +357,7 @@ def _validate_contract(contract):
 
 
 def bot_consumable_contracts(descriptor, snapshot=None):
-    """Read and validate the fixed three-item bot loadout.
-
-    Wire validators may recover immutable contracts from canonical equipment
-    snapshots when they do not have a native VehicleDescr projection.
-    """
+    """Read and validate the bot loadout selected in bot_config.json."""
     raw = _value(descriptor, 'botConsumables')
     if raw is None and isinstance(snapshot, (list, tuple)):
         if not snapshot:
@@ -277,20 +366,29 @@ def bot_consumable_contracts(descriptor, snapshot=None):
                if isinstance(value, dict)]
     if raw is None:
         return ()
-    if not isinstance(raw, (list, tuple)) or len(raw) != len(
-            DEFAULT_BOT_CONSUMABLE_NAMES):
+    selection = _bot_consumable_selection()
+    expected_names = tuple(name for unused_kind, name, unused_large
+                           in selection)
+    if not expected_names:
+        if raw and len(raw) > 0:
+            raise ValueError('bot consumables were disabled by config')
+        return ()
+    if not isinstance(raw, (list, tuple)) or len(raw) != len(expected_names):
         raise ValueError('bot consumable contract count is invalid')
     result = tuple(_validate_contract(dict(value)) for value in raw)
-    if tuple(value['name'] for value in result) != \
-            DEFAULT_BOT_CONSUMABLE_NAMES:
+    if tuple(value['name'] for value in result) != expected_names:
         raise ValueError('bot consumable contract order is invalid')
-    if tuple(value['kind'] for value in result) != (
-            'extinguisher', 'medkit', 'repairkit'):
+    expected_kinds = tuple(kind for kind, unused_name, unused_large
+                           in selection)
+    if tuple(value['kind'] for value in result) != expected_kinds:
         raise ValueError('bot consumable contract kinds are invalid')
-    if (not result[0]['autoactivate'] or
-            not result[1]['repairAll'] or
-            not result[2]['repairAll']):
-        raise ValueError('bot consumable effect policy is invalid')
+    for (kind, unused_name, is_large), value in zip(selection, result):
+        if not is_large:
+            continue
+        if kind == 'extinguisher' and not value['autoactivate']:
+            raise ValueError('bot extinguisher autoactivate is invalid')
+        if kind in ('medkit', 'repairkit') and not value['repairAll']:
+            raise ValueError('bot kit repairAll is invalid')
     return result
 
 
@@ -380,6 +478,139 @@ def _remaining_uses(value):
     if isinstance(value, dict) and 'usesLeft' in value:
         return _integer(value.get('usesLeft'), -1)
     return None
+
+
+# A bot's kit priority follows one rule: revive the crewman whose KO costs
+# the most in *this* fight.  The gunner's KO is expensive only when precision
+# is the deciding factor (stationary, mid-to-long range).  In a moving brawl
+# or with no visible target the loader, driver or commander matter more, and
+# crew_stat_factor already knows each role's exact weight.
+
+def _accuracy_matters(distance_m, is_moving):
+    """True when this engagement is one where hitting the weak spot pays."""
+    try:
+        d = float(distance_m) if distance_m is not None else 0.0
+    except (TypeError, ValueError):
+        d = 0.0
+    if d <= 0.0:
+        # No live target: nothing to be accurate at.
+        return False
+    if d <= 50.0:
+        # Point-blank: any part of the silhouette is a hit.
+        return False
+    return True
+
+
+def _situational_weights(distance_m, is_moving, is_reloading):
+    w = {'reload': 1.0, 'dispersion': 1.0, 'aim_time': 1.0,
+         'mobility': 1.0, 'turret_speed': 1.0, 'vision': 1.0, 'signal': 0.3}
+    try:
+        d = float(distance_m) if distance_m is not None else 0.0
+    except (TypeError, ValueError):
+        d = 0.0
+    accurate = _accuracy_matters(d, is_moving)
+    if accurate:
+        if d >= 400.0:
+            # Sniper: gunner is the only role whose loss costs the shot.
+            w['dispersion']   *= 2.0
+            w['aim_time']     *= 1.8
+            w['vision']       *= 1.3
+            w['reload']       *= 0.7
+        else:
+            # Mid-range: gunner matters, but reload is still the exchange
+            # rate.  Keep them close, with the gunner slightly ahead.
+            w['dispersion']   *= 1.3
+            w['aim_time']     *= 1.2
+    else:
+        # Brawl or no target: hitting the weak spot is not the question.
+        w['dispersion']   *= 0.2
+        w['aim_time']     *= 0.4
+        w['reload']       *= 1.6
+        w['turret_speed'] *= 1.5
+        w['mobility']     *= 1.2
+    if is_moving:
+        w['mobility']     *= 1.4
+        w['turret_speed'] *= 1.4
+        w['dispersion']   *= 0.6
+        w['aim_time']     *= 0.6
+    if is_reloading:
+        w['reload']       *= 1.5
+    return w
+
+
+def _crew_penalty(ko_names, weights):
+    """Scalar pain from a KO set under the battle's own crew law."""
+    pain = 0.0
+    for stat in ('reload', 'dispersion', 'aim_time'):
+        f = device_damage.crew_stat_factor(ko_names, stat)
+        pain += weights.get(stat, 1.0) * max(0.0, f - 1.0)
+    for stat in ('mobility', 'turret_speed', 'vision', 'signal'):
+        f = device_damage.crew_stat_factor(ko_names, stat)
+        pain += weights.get(stat, 1.0) * max(0.0, 1.0 - f)
+    return pain
+
+
+def _bot_role_base(ui_name):
+    """'gunner1' -> 'gunner'; 'commander' -> 'commander'."""
+    return str(ui_name).rstrip('0123456789')
+
+
+# Devices a single-charge repair kit is allowed to restore.  Tracks are
+# deliberately absent: they auto-repair in 12 s and never earn a charge.
+_BOT_REPAIRABLE_DEVICES = frozenset((
+    'ammoBayHealth', 'engineHealth', 'gunHealth', 'fuelTankHealth',
+    'radioHealth', 'turretRotatorHealth', 'surveyingDeviceHealth'))
+
+
+def _bot_repair_target(critical):
+    """Single module a small repair kit should restore, or None.
+
+    Prefers destroyed over critical, and among critical only the ones that
+    earn a charge (see BOT_YELLOW_REPAIR_DEVICES); a yellow track or radio
+    is skipped, exactly like _bot_repair_is_worthwhile skips it.
+    """
+    critical = critical if isinstance(critical, dict) else {}
+    for name in (critical.get('destroyed') or ()):
+        name = str(name)
+        if name in _BOT_REPAIRABLE_DEVICES:
+            return name
+    for record in (critical.get('devices') or ()):
+        if not isinstance(record, dict):
+            continue
+        name = str(record.get('name') or '')
+        if (str(record.get('state') or '') == 'critical' and
+                name in BOT_YELLOW_REPAIR_DEVICES):
+            return name
+    return None
+
+
+def _bot_medkit_target(critical, context=None):
+    """Crewman whose revival leaves the smallest remaining crew penalty.
+
+    Uses device_damage.crew_stat_factor under situational weights, so the
+    pick matches the pain the battle actually applies: at 50 m the loader
+    outranks the gunner, at 400 m the gunner outranks the loader.
+    """
+    critical = critical if isinstance(critical, dict) else {}
+    knocked_out = [str(n) for n in (critical.get('crew_ko') or ())]
+    if not knocked_out:
+        return None
+    if len(knocked_out) == 1:
+        return knocked_out[0]
+    context = context if isinstance(context, dict) else {}
+    weights = _situational_weights(
+        context.get('distance_to_target'),
+        bool(context.get('is_moving', False)),
+        bool(context.get('is_reloading', False)))
+    best = knocked_out[0]
+    best_pain = None
+    for role in knocked_out:
+        remaining = [n for n in knocked_out if n != role]
+        pain = _crew_penalty(remaining, weights)
+        if best_pain is None or pain < best_pain - 1.0e-9:
+            best_pain = pain
+            best = role
+    return best
 
 
 def _bot_repair_is_worthwhile(critical):
@@ -613,6 +844,8 @@ class EquipmentState(object):
                     self.contract.get('cooldownSeconds'), 0.0))
         self._auto_pending_since = None
         self._ai_pending_since = None
+        _bot_debug_log('[bot] USED: %s (action=%s)' %
+                       (self.contract.get('name'), effect.get('action')))
         return effect
 
     def poll_auto(self, now, critical=None):
@@ -635,16 +868,45 @@ class EquipmentState(object):
             return None
         return self.activate(now, critical)
 
-    def poll_bot(self, now, critical=None, stunned=False):
+    def poll_bot(self, now, critical=None, stunned=False, context=None):
         """Apply deterministic bot policy without same-frame kit reactions."""
         kind = str(self.contract.get('kind') or '')
+
         if kind == 'extinguisher':
-            return self.poll_auto(now, critical)
+            if bool(self.contract.get('autoactivate', False)):
+                return self.poll_auto(now, critical)
+            now = _number(now, 0.0)
+            candidate = effect_policy(self, critical, stunned=stunned)
+            if candidate is None or not self.ready(now):
+                self._ai_pending_since = None
+                return None
+            reaction = 1.0
+            try:
+                config = _read_bot_config()
+                reaction = max(0.0, float(
+                    config.get('manual_fire_reaction_seconds', 1.0)))
+            except Exception:
+                pass
+            if self._ai_pending_since is None:
+                self._ai_pending_since = now
+                return None
+            if now - self._ai_pending_since + 1.0e-9 < reaction:
+                return None
+            return self.activate(now, critical, stunned=stunned)
+
         if kind not in ('repairkit', 'medkit'):
             self._ai_pending_since = None
             return None
+
         now = _number(now, 0.0)
-        candidate = effect_policy(self, critical, stunned=stunned)
+        if bool(self.contract.get('repairAll', False)):
+            selected = None
+        elif kind == 'repairkit':
+            selected = _bot_repair_target(critical)
+        else:
+            selected = _bot_medkit_target(critical, context)
+        candidate = effect_policy(self, critical, selected=selected,
+                                  stunned=stunned)
         if (candidate is None or not self.ready(now) or
                 (kind == 'repairkit' and
                  not _bot_repair_is_worthwhile(critical))):
@@ -653,11 +915,10 @@ class EquipmentState(object):
         if self._ai_pending_since is None:
             self._ai_pending_since = now
             return None
-        # Even a zero-length simulator step may not consume a kit in the same
-        # observation that first noticed the damage.
         if now <= self._ai_pending_since + 1.0e-9:
             return None
-        return self.activate(now, critical, stunned=stunned)
+        return self.activate(now, critical, selected=selected,
+                             stunned=stunned)
 
     @staticmethod
     def _elapsed(now, started):

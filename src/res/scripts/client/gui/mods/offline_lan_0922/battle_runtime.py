@@ -3403,12 +3403,13 @@ class BattleRuntime(object):
             descriptor = self._runtime.vehicles.VehicleDescr(compactDescr=base64.b64decode(encoded.encode('ascii')))
             if str(descriptor.type.name) != str(vehicle_name):
                 raise RuntimeError('replay local descriptor does not match recorded vehicle')
-            return descriptor
+            return self._scale_gun_dispersion(descriptor)
         vehicles = self._runtime.vehicles
         fitting = self._garage_loadout_snapshot()['fitting']
         if fitting is not None and fitting[1] == vehicle_name:
             try:
-                return vehicles.VehicleDescr(compactDescr=fitting[0])
+                return self._scale_gun_dispersion(
+                    vehicles.VehicleDescr(compactDescr=fitting[0]))
             except Exception as error:
                 raise RuntimeError(
                     'the mounted vehicle descriptor is unreadable: %s' %
@@ -3417,7 +3418,8 @@ class BattleRuntime(object):
             raise RuntimeError(
                 'the mounted vehicle descriptor does not match %s' %
                 vehicle_name)
-        return vehicles.VehicleDescr(typeName=vehicle_name)
+        return self._scale_gun_dispersion(
+            vehicles.VehicleDescr(typeName=vehicle_name))
 
     def _create_entities(self):
         try:
@@ -4855,6 +4857,7 @@ class BattleRuntime(object):
             raw = base64.b64decode(encoded.encode('ascii'))
             descriptor = self._runtime.vehicles.VehicleDescr(
                 compactDescr=raw)
+            descriptor = self._scale_gun_dispersion(descriptor)
         except Exception as error:
             raise RuntimeError(
                 'player mounted vehicle descriptor is unreadable: %s' %
@@ -5008,6 +5011,33 @@ class BattleRuntime(object):
             snapshot, skill_name,
             self._local_crew_critical())
 
+    def _scale_gun_dispersion(self, descriptor):
+        if descriptor is None or getattr(descriptor, '_disp_scaled', False):
+            return descriptor
+        try:
+            descriptor._disp_scaled = True
+        except Exception:
+            pass
+        try:
+            import os, json
+            from gui.mods.offline_lan_0922 import config as _pc
+            path = os.path.join(_pc.USER_DATA_DIR, 'damage_config.json')
+            with open(path, 'rb') as s:
+                mult = float(json.load(s).get('dispersion_multiplier', 1.0))
+        except Exception:
+            return descriptor
+        if mult == 1.0 or not 0.01 <= mult <= 10.0:
+            return descriptor
+        gun = getattr(descriptor, 'gun', None)
+        if gun is not None:
+            try:
+                cur = float(getattr(gun, 'shotDispersionAngle', 0.0))
+                if cur > 0.0:
+                    gun.shotDispersionAngle = cur * mult
+            except Exception:
+                pass
+        return descriptor
+
     def _prepare_vehicle_descriptor(self, vehicle_name):
         descriptor = self._runtime.vehicles.VehicleDescr(
             typeName=vehicle_name)
@@ -5015,6 +5045,7 @@ class BattleRuntime(object):
         compact_descr = descriptor.makeCompactDescr()
         descriptor = self._runtime.vehicles.VehicleDescr(
             compactDescr=compact_descr)
+        descriptor = self._scale_gun_dispersion(descriptor)
         if str(getattr(descriptor.type, 'name', '') or '') != vehicle_name:
             raise RuntimeError(
                 '#1513 top vehicle descriptor type mismatch for %s' %
