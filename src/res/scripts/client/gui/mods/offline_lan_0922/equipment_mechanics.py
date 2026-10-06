@@ -75,6 +75,15 @@ def _bot_debug_log(message):
     except Exception:
         pass
 
+_BOT_CONFIG_DEFAULT = {
+    "_комментарий": "large = как в оригинале, small = обычные, none = без расходника",
+    "_варианты": ["large", "small", "none"],
+    "manual_fire_reaction_seconds": 1.0,
+    "extinguisher": "large",
+    "medkit": "large",
+    "repairkit": "large",
+}
+
 
 def _read_bot_config():
     global _BOT_CONFIG_CACHE

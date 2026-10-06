@@ -34,6 +34,31 @@ import random
 
 _DAMAGE_CONFIG_CACHE = None
 
+_DAMAGE_CONFIG_DEFAULT = {
+  "_комментарий": "false = оригинал WoT, true = свои шансы, \"deterministic\" = 100% крит",
+  "custom": false,
+  "chances": {
+    "ammoBayHealth":          {"projectile": 0.73, "explosion": 0.73},
+    "engineHealth":           {"projectile": 0.55, "explosion": 0.55},
+    "fuelTankHealth":         {"projectile": 0.55, "explosion": 0.55},
+    "radioHealth":            {"projectile": 0.55, "explosion": 0.55},
+    "turretRotatorHealth":    {"projectile": 0.55, "explosion": 0.55},
+    "surveyingDeviceHealth":  {"projectile": 0.55, "explosion": 0.55},
+    "gunHealth":              {"projectile": 0.67, "explosion": 0.67},
+    "leftTrackHealth":        {"projectile": 1.0, "explosion": 1.0},
+    "rightTrackHealth":       {"projectile": 1.0, "explosion": 1.0},
+    "commanderHealth":        {"projectile": 0.67, "explosion": 0.85},
+    "driverHealth":           {"projectile": 0.67, "explosion": 0.85},
+    "gunner1Health":          {"projectile": 0.67, "explosion": 0.85},
+    "gunner2Health":          {"projectile": 0.67, "explosion": 0.85},
+    "loader1Health":          {"projectile": 0.67, "explosion": 0.85},
+    "loader2Health":          {"projectile": 0.67, "explosion": 0.85},
+    "radioman1Health":        {"projectile": 0.67, "explosion": 0.85},
+    "radioman2Health":        {"projectile": 0.67, "explosion": 0.85}
+  },
+  "dispersion_multiplier": 1.0
+}
+
 
 def _read_damage_config():
     global _DAMAGE_CONFIG_CACHE
